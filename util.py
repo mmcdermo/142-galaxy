@@ -6,13 +6,13 @@ imageRoot  ='images_training_rev1/'
 dataFile = 'training_solutions_rev1.csv'
 
 # Load CSV data into a hashmap keyed on the first value
-def loadData():
+def loadData(dataFile=dataFile):
     data = np.genfromtxt(dataFile, delimiter=',')
     dataHM = {}
     for i in xrange(1, len(data)):  dataHM[ int(data[i][0]) ] = data[i][1:]
     return dataHM
 
-def loadImages(ratio):
+def loadImages(ratio, imageRoot = imageRoot):
     images = os.listdir(imageRoot)
     n = int(len(images) * ratio)
     print "Loading " + str(n) + " Images"
@@ -51,9 +51,9 @@ def combineData(dataHM, processed):
     return (X, Y)
     
 # Do everything above
-def loadProcess(ratioImages, filters):
-    dataHM = loadData()
-    loaded = loadImages(ratioImages)
+def loadProcess(ratioImages, filters, dataFile = dataFile, imageRoot = imageRoot):
+    dataHM = loadData(dataFile)
+    loaded = loadImages(ratioImages, imageRoot)
     processed = preprocess(loaded, filters)
     return combineData(dataHM, processed)
 
