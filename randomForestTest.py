@@ -1,4 +1,6 @@
 from util import *
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn import cross_validation
 
 filters = [crop((150, 275), (150, 275)), resize(36, 36), grayscale]
 (X, Y) = loadProcess(0.03, filters)

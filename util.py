@@ -1,8 +1,6 @@
 import cv2
 import os
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn import cross_validation
 
 imageRoot  ='images_training_rev1/'
 dataFile = 'training_solutions_rev1.csv'
