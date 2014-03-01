@@ -57,9 +57,15 @@ def loadProcess(ratioImages, filters, dataFile = dataFile, imageRoot = imageRoot
     processed = preprocess(loaded, filters)
     return combineData(dataHM, processed)
 
-# view a 1D array as an image
-def preview1D(image, x, y):
-    img = image.reshape(x, y)
-    cv2.imshow("Sample", img)
+# Preview nx ** 2 1D arrays as images
+def preview(images, x, y, nx):
+    ny = nx
+    out = np.zeros((x * nx, y * ny))
+    out = cv2.resize(images[0].reshape(x, y), (x*nx, y*ny))
+    for i in xrange(0, nx):
+        for j in xrange(0, ny):
+            img = images[i*nx + j].reshape(x, y)
+            out[i*x:(i+1)*x, j*y:(j+1)*y] = img
+    cv2.imshow("Sample", out)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

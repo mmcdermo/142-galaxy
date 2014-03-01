@@ -5,7 +5,7 @@ from sklearn import cross_validation
 filters = [crop((150, 275), (150, 275)), resize(36, 36), grayscale]
 (X, Y) = loadProcess(0.03, filters)
 
-preview1D(X[0], 36, 36)
+preview(X, 36, 36, 20)
 
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(
      X, Y, test_size=0.4, random_state=0)
