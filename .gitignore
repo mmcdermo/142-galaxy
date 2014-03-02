@@ -1,5 +1,8 @@
 training_solutions_rev1.csv
 images_training_rev1
+images_training_rev1/*
 *~
 *#
 *pyc
+images_test_rev1
+images_test_rev1/*

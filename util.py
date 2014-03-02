@@ -29,24 +29,44 @@ def preprocess(images, filters):
     print "\nPreprocessing images"
     processed = []
     for i in xrange(0, len(images)):
-        if i % 1000 == 0: print "."
+        if i % 1000 == 0: print str((i/len(images)))+"%"
         image = images[i]
         for j in xrange(0, len(filters)): 
             image['img'] = filters[j](image['img'])
         processed.append(image)
     return processed
 
-def loadPreprocess(ratio, filters, imageRoot=imageRoot):
+def loadPreprocess(ratio, filters, imageRoot=imageRoot, color=cv2.COLOR_BGR2GRAY, name="default"):
+    cache = "cache_" + name + "_" + imageRoot
     images = os.listdir(imageRoot)
     n = int(len(images) * ratio)
-    print "Loading " + str(n) + " Images"
+    if(os.path.exists(cache)):
+        cachedImages = os.listdir(cache)
+        if n <= len(cachedImages):
+            print "Loading images from cache "+cache
+            r = []
+            for i in xrange(0, n):
+                if i % 10000 == 0: print str((float(i)/n*100))+"%"
+                img = grayscale(cv2.imread(cache + cachedImages[i]))
+                r.append({'ID': int(images[i].split(".")[0])
+                          ,"img": img})
+            return r
+        else: print "Need to regenerate cache..."
+    else: 
+        print "Creating Cache: " + cache
+        os.mkdir(cache)
+    print "Loading " + str(n) + " New Images"
     loaded = []
     for i in xrange(0, n):
-        if i % 1000 == 0: print "."
+        if i % 1000 == 0: print str((float(i)/n*100))+"%"
         img = cv2.imread(imageRoot + images[i])
-        for j in xrange(0, len(filters)):img = filters[j](img)
-        loaded.append({'ID': int(images[i].split(".")[0])
-                       ,"img": img })
+        if(img == None or len(img) == 0 or len(img[0]) == 0):
+            print "EMPTY IMAGE"
+        else:
+            for j in xrange(0, len(filters)):img = filters[j](img)
+            cv2.imwrite(cache + images[i], img)
+            loaded.append({'ID': int(images[i].split(".")[0])
+                           ,"img": img })
     return loaded
     
 
@@ -105,7 +125,7 @@ def submission(predict, filters):
 def rmse(X_test, y_test, predict):
     errs = []
     for i in range(0, len(X_test)):
-        if i % 100 == 0: print ","
+        #if i % 100 == 0: print ","
         activ = predict(X_test[i])
         diff = y_test[i] - activ
         diffSq = [e**2 for e in diff]
