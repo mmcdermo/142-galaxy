@@ -1,15 +1,16 @@
 from util import *
-from math import sqrt
+
 from sklearn import cross_validation
 import numpy as np
 from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.tools.shortcuts import buildNetwork
 from pybrain.datasets import SupervisedDataSet
 from pybrain.structure import LinearLayer, SigmoidLayer
+import cPickle
 
 filters = [crop((150, 275), (150, 275)), resize(36, 36), grayscale]
-(X, Y) = loadProcess(0.25, filters)
 
+(X, Y) = everything(0.01, filters)
 preview(X, 36, 36, 20)
 
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(
@@ -28,16 +29,15 @@ for j in range(0, 3):
     err = trainer.train()
     print "\tEpoch " + str(j)+ " err: " + str(err)
 
-#Get real error
-errs = []
-for i in range(0, len(X_test)):
-    activ = net.activate(X_test[i])
-    diff = y_test[i] - activ
-    diffSq = np.vectorize(lambda(x): x ** 2)(diff)
-    errs.append(np.sum(diffSq))
-
-errSum = np.sum(np.array(errs))
-rmse = sqrt( errSum / (len(X_test) * len(X_test[0])) )
-print "RMSE: " + str(rmse)
+f = open("net", "wb")
+cPickle.dump(net, f)
+f.close()
 
 
+'''
+f = open("net", "r")
+net = cPickle.load(f)
+print net
+submission(net.activate)
+'''
+print rmse(X_test, y_test, net.activate)
