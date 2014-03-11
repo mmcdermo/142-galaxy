@@ -4,10 +4,9 @@ from sklearn import cross_validation
 import cPickle
 
 filters = [crop((150, 275), (150, 275)), resize(36, 36), grayscale]
-(X, Y) = everything(0.4, filters)
+(X, Y) = everything(0.01, filters)
 
-preview(X, 36, 36, 20)
-
+#preview(X, 36, 36, 20)
 X_train, X_test, y_train, y_test = cross_validation.train_test_split(
      X, Y, test_size=0.4, random_state=0)
 
@@ -33,5 +32,6 @@ f.close()
 f = open("randomForest", "r")
 clf = cPickle.load(f)
 
-print rmse(X_test, y_test, clf.predict)
+
+print rmse(X_test, y_test, clf.predict, True)
 submission(clf.predict, filters)

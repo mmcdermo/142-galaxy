@@ -1,5 +1,7 @@
 import cv2
+import sys
 import os
+import itertools
 from math import sqrt
 import numpy as np
 
@@ -47,7 +49,8 @@ def loadPreprocess(ratio, filters, imageRoot=imageRoot, color=cv2.COLOR_BGR2GRAY
             r = []
             for i in xrange(0, n):
                 if i % 10000 == 0: print str((float(i)/n*100))+"%"
-                img = grayscale(cv2.imread(cache + cachedImages[i]))
+                img = cv2.imread(cache + cachedImages[i])
+                #img = cv2.cvtColor(img, color)
                 r.append({'ID': int(images[i].split(".")[0])
                           ,"img": img})
             return r
@@ -81,7 +84,7 @@ def combineData(dataHM, processed):
     Y = []
     for i in xrange(0, len(processed)): 
         x = processed[i]['img']
-        X.append( x.reshape(x.shape[0] * x.shape[1]) )
+        X.append( x.reshape(x.shape[0] * x.shape[1] * x.shape[2]) )
         Y.append(dataHM[processed[i]['ID']])
     return (X, Y)
     
@@ -108,7 +111,7 @@ def submission(predict, filters):
     testData = loadPreprocess(1.0, filters, "images_test_rev1/")
     testtest = []
     for i in range(len(testData)): testtest.append(testData[i]['img'])
-    preview(testtest, 36, 36, 20)
+    #preview(testtest, 36, 36, 20)
     processed = []
     for i in range(len(testData)):
         x = testData[i]['img']
@@ -122,13 +125,87 @@ def submission(predict, filters):
         f.write(s+'\n')
     f.close()
 
-def rmse(X_test, y_test, predict):
+def rmse(X_test, y_test, predict, featureErrors = False):
     errs = []
+    featErrs = np.zeros(y_test[0].shape)
     for i in range(0, len(X_test)):
         #if i % 100 == 0: print ","
         activ = predict(X_test[i])
         diff = y_test[i] - activ
-        diffSq = [e**2 for e in diff]
+        diffSq = np.array([e**2 for e in diff])
+        featErrs += diffSq[0]
         errs.append(np.sum(diffSq))
     errSum = np.sum(np.array(errs))
-    return sqrt( errSum / (len(X_test) * len(X_test[0])))
+    r = sqrt( errSum / (len(X_test) * len(X_test[0])))
+    if not featureErrors:
+        return r
+    else:
+        return (r, featErrs)
+
+def accumulate(l):
+    s = 0
+    for i in l:
+        s += i
+        yield s
+    
+
+tasks = [3, 2, 2, 2, 4, 2, 3, 7, 3, 3, 6] # num questions per task
+taskIdx = [0] + list(accumulate(tasks))   # indices of first task question
+
+# Simplified representation of the decision tree:
+taskPaths = [[]         #t1
+             , [[1, 2]] #t2
+             , [[2, 2]] #t3
+             , [[2, 2]] #t4 = 3 = [2,2]
+             , [[2, 2]] #t5 = [4,2] or 11 = [4,2] or [4,1] = [4] = [3] = [2,2]
+             , []       #t6 = 5 or 9 = 3 or 9 = [[2, 2], [2, 1]] = [2] = [1,2]
+                        # However, they re-normalized 6. 
+             , [[1, 1]] #t7
+             , [[6, 1]] #t8
+             , [[2, 1]] #t9
+             , [[4, 1]] #t10
+             , [[4, 1]] #t11 = 10 = [4, 1]
+             ]
+
+# Undoes the galaxy zoo data weighting 
+def deWeight(X):
+    realProbs = np.copy(X)
+    for task in range(len(taskPaths)):
+        dep = taskPaths[task]
+        # Fortunately all tasks rely only on one previous response
+        if len(dep) > 0:
+            depIdx = taskIdx[dep[0][0] - 1] + (dep[0][1] - 1)
+            prob = X[depIdx]
+            if prob == 0: prob = 1
+            for taskFeature in range (tasks[task]):
+                idx = taskIdx[task] + taskFeature
+                realProbs[idx] = X[idx] / prob
+    return realProbs
+
+# This is a pseudo-softmax (no exp) that ensures responses for each question sum
+#  to one before reweighting. 
+def deWeightedSoftmax(X):
+    Xe = np.copy(X)
+    for task in range(len(taskPaths)):
+        sum = 0
+        for taskFeature in range (tasks[task]):
+            sum += Xe[taskIdx[task] + taskFeature]
+        if sum != 0:
+            for taskFeature in range (tasks[task]):
+                idx = taskIdx[task] + taskFeature
+                Xe[idx] = Xe[idx] / sum
+    return Xe
+
+#     
+def reWeight(X):
+    weightedProbs = np.copy(X)
+    for task in range(len(taskPaths)):
+        dep = taskPaths[task]
+        if len(dep) > 0:
+            depIdx = taskIdx[dep[0][0] - 1] + (dep[0][1] - 1)
+            prob = weightedProbs[depIdx]
+            for taskFeature in range (tasks[task]):
+                idx = taskIdx[task] + taskFeature
+                weightedProbs[idx] = X[idx] * prob
+    return weightedProbs    
+    
